@@ -1,5 +1,4 @@
 import React from "react";
-import JoinWaitlist from "./JoinWaitlist";
 
 const Pricing = () => {
   return (
@@ -96,9 +95,9 @@ const Pricing = () => {
           </div>
           <a
             className="bg-emerald-100/10 text-emerald-300 hover:bg-emerald-100/20 mt-8 block w-full py-3 px-6 border border-emerald-400/20 rounded-md text-center font-medium"
-            href="/waitlistSignUp"
+            href="/login"
           >
-            Join Waitlist
+            Try it free
           </a>
         </div>
         <div className="relative p-6 sm:p-8 w-full lg:h-auto mt-2 shadow-xl/90 border border-[#fd2b92] bg-white text-black rounded-2xl shadow-lg/10 flex flex-col">
@@ -209,7 +208,12 @@ const Pricing = () => {
               </li>
             </ul>
           </div>
-          <JoinWaitlist />
+          <a
+            className="mt-8 block w-full py-3 px-6 border border-[#fd2b92] text-[#fd2b92] hover:bg-[#fd2b92] hover:text-white rounded-md text-center font-medium transition-colors"
+            href="/coming-soon"
+          >
+            Upgrade to pro
+          </a>
         </div>
       </div>
       </div>
