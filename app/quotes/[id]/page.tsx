@@ -162,6 +162,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
         <div className="print-area bg-gray-50 border border-gray-200 rounded-lg p-8">
           <h3 className="text-xl font-bold mb-4 text-gray-900">Quote</h3>
           <p className="mb-6 text-gray-600"><strong>Client:</strong> {quote.client_name}</p>
+          {quote.job && <p className="mb-6 text-gray-600"><strong>Job:</strong> {quote.job}</p>}
           
           <QuoteTable
             items={items}
@@ -169,6 +170,44 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
             onRemoveItem={() => {}}
             editable={false}
           />
+
+          {/* Tax breakdown */}
+          <div className="mt-8 border-t border-gray-300 pt-6">
+            <div className="flex justify-between mb-2">
+              <span className="text-gray-600">Subtotal</span>
+              <span className="font-semibold text-gray-900">
+                {new Intl.NumberFormat('en-IE', {
+                  style: 'currency',
+                  currency: 'EUR',
+                  maximumFractionDigits: 0,
+                }).format(items.reduce((sum, item) => sum + (item.quantity * item.price), 0))}
+              </span>
+            </div>
+            {quote.tax_percentage && quote.tax_percentage > 0 && (
+              <div className="flex justify-between mb-2">
+                <span className="text-gray-600">
+                  {quote.tax_label || 'Tax'} ({quote.tax_percentage}%)
+                </span>
+                <span className="font-semibold text-gray-900">
+                  {new Intl.NumberFormat('en-IE', {
+                    style: 'currency',
+                    currency: 'EUR',
+                    maximumFractionDigits: 0,
+                  }).format(items.reduce((sum, item) => sum + (item.quantity * item.price), 0) * (quote.tax_percentage / 100))}
+                </span>
+              </div>
+            )}
+            <div className="flex justify-between mt-4 pt-4 border-t border-gray-300">
+              <span className="text-lg font-bold text-gray-900">Total</span>
+              <span className="text-lg font-bold text-gray-900">
+                {new Intl.NumberFormat('en-IE', {
+                  style: 'currency',
+                  currency: 'EUR',
+                  maximumFractionDigits: 0,
+                }).format(quote.total || 0)}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 

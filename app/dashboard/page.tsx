@@ -248,9 +248,16 @@ export default function DashboardPage() {
                       <option value="accepted">Accepted</option>
                       <option value="declined">Declined</option>
                     </select>
-                    <span className="font-semibold text-gray-900 w-24 text-right">
-                      {quote.total ? formatCurrency(quote.total) : '€0'}
-                    </span>
+                    <div className="text-right">
+                      <span className="font-semibold text-gray-900">
+                        {quote.total ? formatCurrency(quote.total) : '€0'}
+                      </span>
+                      {quote.tax_percentage && quote.tax_percentage > 0 && (
+                        <div className="text-xs text-gray-500">
+                          {formatCurrency(quote.total / (1 + quote.tax_percentage / 100))} + tax
+                        </div>
+                      )}
+                    </div>
                     <button
                       onClick={(e) => handleDelete(quote.id, e)}
                       className="text-gray-400 hover:text-red-600 transition-colors"

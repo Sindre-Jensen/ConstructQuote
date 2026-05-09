@@ -14,6 +14,8 @@ export interface Quote {
   status: 'draft' | 'sent' | 'accepted' | 'declined'
   total: number
   expires: string | null
+  tax_label: string | null
+  tax_percentage: number
   created_at: string
 }
 

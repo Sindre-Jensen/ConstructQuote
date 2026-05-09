@@ -6,7 +6,9 @@ alter table quotes
   add column if not exists job text not null default 'Untitled Quote',
   add column if not exists status text not null default 'draft' check (status in ('draft', 'sent', 'accepted', 'declined')),
   add column if not exists total numeric default 0,
-  add column if not exists expires timestamp with time zone;
+  add column if not exists expires timestamp with time zone,
+  add column if not exists tax_label text,
+  add column if not exists tax_percentage numeric default 0;
 
 -- Populate job field from client_name for existing quotes
 update quotes

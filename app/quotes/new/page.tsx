@@ -9,6 +9,9 @@ import AddItem from '@/components/AddItem'
 
 export default function NewQuotePage() {
   const [clientName, setClientName] = useState('')
+  const [jobName, setJobName] = useState('')
+  const [taxLabel, setTaxLabel] = useState('')
+  const [taxPercentage, setTaxPercentage] = useState('')
   const [lineItems, setLineItems] = useState<LineItem[]>([])
   const [quoteItems, setQuoteItems] = useState<QuoteItem[]>([])
   const [loading, setLoading] = useState(false)
@@ -81,11 +84,20 @@ export default function NewQuotePage() {
     if (!user) return
 
     try {
+      const subtotal = quoteItems.reduce((sum, item) => sum + (item.quantity * item.price), 0)
+      const taxPercent = taxPercentage ? parseFloat(taxPercentage) : 0
+      const taxAmount = subtotal * (taxPercent / 100)
+      const total = subtotal + taxAmount
+
       const { data: quote, error: quoteError } = await supabase
         .from('quotes')
         .insert({
           user_id: user.id,
           client_name: clientName,
+          job: jobName || clientName,
+          total: total,
+          tax_label: taxLabel || null,
+          tax_percentage: taxPercent,
         })
         .select()
         .single()
@@ -133,8 +145,45 @@ export default function NewQuotePage() {
             value={clientName}
             onChange={(e) => setClientName(e.target.value)}
             placeholder="Enter client name"
+            className="w-full border border-gray-300 rounded-lg p-3 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent mb-4"
+          />
+          
+          <label className="block text-sm font-medium mb-2 text-gray-700">Job Name</label>
+          <input
+            type="text"
+            value={jobName}
+            onChange={(e) => setJobName(e.target.value)}
+            placeholder="Enter job description (optional)"
             className="w-full border border-gray-300 rounded-lg p-3 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
           />
+        </div>
+
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-8">
+          <h3 className="text-sm font-medium mb-4 text-gray-700">Tax (Optional)</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2 text-gray-700">Tax Label</label>
+              <input
+                type="text"
+                value={taxLabel}
+                onChange={(e) => setTaxLabel(e.target.value)}
+                placeholder="e.g., VAT, Sales Tax"
+                className="w-full border border-gray-300 rounded-lg p-3 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2 text-gray-700">Tax Percentage (%)</label>
+              <input
+                type="number"
+                value={taxPercentage}
+                onChange={(e) => setTaxPercentage(e.target.value)}
+                placeholder="e.g., 21"
+                min="0"
+                max="100"
+                className="w-full border border-gray-300 rounded-lg p-3 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+              />
+            </div>
+          </div>
         </div>
 
         <div className="mb-4">
