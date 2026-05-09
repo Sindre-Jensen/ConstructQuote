@@ -2,16 +2,22 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { LineItem, QuoteItem } from '@/lib/types'
+import { LineItem, QuoteItem, QuoteTax, SavedTax } from '@/lib/types'
 import { useRouter } from 'next/navigation'
 import QuoteTable from '@/components/QuoteTable'
 import AddItem from '@/components/AddItem'
 
+interface TaxInput {
+  id: string
+  label: string
+  percentage: string
+}
+
 export default function NewQuotePage() {
   const [clientName, setClientName] = useState('')
   const [jobName, setJobName] = useState('')
-  const [taxLabel, setTaxLabel] = useState('')
-  const [taxPercentage, setTaxPercentage] = useState('')
+  const [taxes, setTaxes] = useState<TaxInput[]>([])
+  const [savedTaxes, setSavedTaxes] = useState<SavedTax[]>([])
   const [lineItems, setLineItems] = useState<LineItem[]>([])
   const [quoteItems, setQuoteItems] = useState<QuoteItem[]>([])
   const [loading, setLoading] = useState(false)
@@ -19,6 +25,7 @@ export default function NewQuotePage() {
 
   useEffect(() => {
     fetchLineItems()
+    fetchSavedTaxes()
   }, [])
 
   const fetchLineItems = async () => {
@@ -38,6 +45,23 @@ export default function NewQuotePage() {
       console.error('Error fetching line items:', error)
     } else {
       setLineItems(data || [])
+    }
+  }
+
+  const fetchSavedTaxes = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    const { data, error } = await supabase
+      .from('saved_taxes')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('label')
+
+    if (error) {
+      console.error('Error fetching saved taxes:', error)
+    } else {
+      setSavedTaxes(data || [])
     }
   }
 
@@ -73,6 +97,29 @@ export default function NewQuotePage() {
     setQuoteItems(quoteItems.filter(item => item.id !== id))
   }
 
+  const handleAddTax = () => {
+    setTaxes([...taxes, { id: crypto.randomUUID(), label: '', percentage: '' }])
+  }
+
+  const handleRemoveTax = (id: string) => {
+    setTaxes(taxes.filter(tax => tax.id !== id))
+  }
+
+  const handleUpdateTax = (id: string, field: 'label' | 'percentage', value: string) => {
+    setTaxes(taxes.map(tax => 
+      tax.id === id ? { ...tax, [field]: value } : tax
+    ))
+  }
+
+  const handleAddSavedTax = (savedTax: SavedTax) => {
+    const newTax: TaxInput = {
+      id: crypto.randomUUID(),
+      label: savedTax.label,
+      percentage: savedTax.percentage.toString(),
+    }
+    setTaxes([...taxes, newTax])
+  }
+
   const handleSave = async () => {
     if (!clientName || quoteItems.length === 0) {
       alert('Please enter a client name and add at least one item')
@@ -85,9 +132,8 @@ export default function NewQuotePage() {
 
     try {
       const subtotal = quoteItems.reduce((sum, item) => sum + (item.quantity * item.price), 0)
-      const taxPercent = taxPercentage ? parseFloat(taxPercentage) : 0
-      const taxAmount = subtotal * (taxPercent / 100)
-      const total = subtotal + taxAmount
+      const totalTax = taxes.reduce((sum, tax) => sum + (subtotal * (parseFloat(tax.percentage) / 100)), 0)
+      const total = subtotal + totalTax
 
       const { data: quote, error: quoteError } = await supabase
         .from('quotes')
@@ -96,8 +142,6 @@ export default function NewQuotePage() {
           client_name: clientName,
           job: jobName || clientName,
           total: total,
-          tax_label: taxLabel || null,
-          tax_percentage: taxPercent,
         })
         .select()
         .single()
@@ -116,6 +160,23 @@ export default function NewQuotePage() {
         .insert(itemsToInsert)
 
       if (itemsError) throw itemsError
+
+      // Insert taxes
+      const taxesToInsert = taxes
+        .filter(tax => tax.label && tax.percentage)
+        .map(tax => ({
+          quote_id: quote.id,
+          label: tax.label,
+          percentage: parseFloat(tax.percentage),
+        }))
+
+      if (taxesToInsert.length > 0) {
+        const { error: taxesError } = await supabase
+          .from('quote_taxes')
+          .insert(taxesToInsert)
+
+        if (taxesError) throw taxesError
+      }
 
       router.push(`/quotes/${quote.id}`)
     } catch (error) {
@@ -159,31 +220,70 @@ export default function NewQuotePage() {
         </div>
 
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-8">
-          <h3 className="text-sm font-medium mb-4 text-gray-700">Tax (Optional)</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-2 text-gray-700">Tax Label</label>
-              <input
-                type="text"
-                value={taxLabel}
-                onChange={(e) => setTaxLabel(e.target.value)}
-                placeholder="e.g., VAT, Sales Tax"
-                className="w-full border border-gray-300 rounded-lg p-3 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2 text-gray-700">Tax Percentage (%)</label>
-              <input
-                type="number"
-                value={taxPercentage}
-                onChange={(e) => setTaxPercentage(e.target.value)}
-                placeholder="e.g., 21"
-                min="0"
-                max="100"
-                className="w-full border border-gray-300 rounded-lg p-3 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
-              />
-            </div>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-sm font-medium text-gray-700">Tax Rates (Optional)</h3>
+            <button
+              type="button"
+              onClick={handleAddTax}
+              className="text-sm text-gray-600 hover:text-gray-900 font-medium"
+            >
+              + Add Tax
+            </button>
           </div>
+          
+          {savedTaxes.length > 0 && (
+            <div className="mb-4">
+              <p className="text-xs text-gray-500 mb-2">Quick-add saved taxes:</p>
+              <div className="flex flex-wrap gap-2">
+                {savedTaxes.map((savedTax) => (
+                  <button
+                    key={savedTax.id}
+                    type="button"
+                    onClick={() => handleAddSavedTax(savedTax)}
+                    className="px-3 py-1 bg-white border border-gray-300 rounded-full text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                  >
+                    {savedTax.label} ({savedTax.percentage}%)
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {taxes.length === 0 ? (
+            <p className="text-sm text-gray-500">No taxes added</p>
+          ) : (
+            <div className="space-y-3">
+              {taxes.map((tax) => (
+                <div key={tax.id} className="grid grid-cols-[1fr,100px,40px] gap-3 items-center">
+                  <input
+                    type="text"
+                    value={tax.label}
+                    onChange={(e) => handleUpdateTax(tax.id, 'label', e.target.value)}
+                    placeholder="e.g., VAT, Sales Tax"
+                    className="border border-gray-300 rounded-lg p-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                  />
+                  <input
+                    type="number"
+                    value={tax.percentage}
+                    onChange={(e) => handleUpdateTax(tax.id, 'percentage', e.target.value)}
+                    placeholder="%"
+                    min="0"
+                    max="100"
+                    className="border border-gray-300 rounded-lg p-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveTax(tax.id)}
+                    className="text-gray-400 hover:text-red-600 transition-colors"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="mb-4">

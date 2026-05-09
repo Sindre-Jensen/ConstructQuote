@@ -14,8 +14,22 @@ export interface Quote {
   status: 'draft' | 'sent' | 'accepted' | 'declined'
   total: number
   expires: string | null
-  tax_label: string | null
-  tax_percentage: number
+  created_at: string
+}
+
+export interface QuoteTax {
+  id: string
+  quote_id: string
+  label: string
+  percentage: number
+  created_at: string
+}
+
+export interface SavedTax {
+  id: string
+  user_id: string
+  label: string
+  percentage: number
   created_at: string
 }
 

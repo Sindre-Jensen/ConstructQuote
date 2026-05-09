@@ -140,8 +140,8 @@ export default function DashboardPage() {
             className="object-contain"
           />
           <div className="flex items-center gap-6">
-            <a href="/items" className="text-gray-600 hover:text-gray-900 transition-colors">
-              Price list
+            <a href="/taxes" className="text-gray-600 hover:text-gray-900 transition-colors">
+              Tax rates
             </a>
             <div className="relative">
               <button
@@ -176,17 +176,25 @@ export default function DashboardPage() {
         </div>
 
         {/* Section header */}
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-gray-900">Quotes</h2>
-          <a
-            href="/quotes/new"
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            New quote
-          </a>
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-3xl font-bold text-gray-900">Quotes</h2>
+          <div className="flex gap-3">
+            <a
+              href="/items"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all"
+            >
+              Price list
+            </a>
+            <a
+              href="/quotes/new"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              New quote
+            </a>
+          </div>
         </div>
 
         {/* Search */}
@@ -252,11 +260,6 @@ export default function DashboardPage() {
                       <span className="font-semibold text-gray-900">
                         {quote.total ? formatCurrency(quote.total) : '€0'}
                       </span>
-                      {quote.tax_percentage && quote.tax_percentage > 0 && (
-                        <div className="text-xs text-gray-500">
-                          {formatCurrency(quote.total / (1 + quote.tax_percentage / 100))} + tax
-                        </div>
-                      )}
                     </div>
                     <button
                       onClick={(e) => handleDelete(quote.id, e)}

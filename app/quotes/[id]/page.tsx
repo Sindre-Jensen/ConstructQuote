@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Quote, QuoteItem } from '@/lib/types'
+import { Quote, QuoteItem, QuoteTax } from '@/lib/types'
 import { useRouter } from 'next/navigation'
 import QuoteTable from '@/components/QuoteTable'
 
@@ -10,6 +10,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
   const resolvedParams = use(params)
   const [quote, setQuote] = useState<Quote | null>(null)
   const [items, setItems] = useState<QuoteItem[]>([])
+  const [taxes, setTaxes] = useState<QuoteTax[]>([])
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
@@ -47,6 +48,17 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
       console.error('Error fetching items:', itemsError)
     } else {
       setItems(itemsData || [])
+    }
+
+    const { data: taxesData, error: taxesError } = await supabase
+      .from('quote_taxes')
+      .select('*')
+      .eq('quote_id', resolvedParams.id)
+
+    if (taxesError) {
+      console.error('Error fetching taxes:', taxesError)
+    } else {
+      setTaxes(taxesData || [])
     }
     setLoading(false)
   }
@@ -183,20 +195,23 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
                 }).format(items.reduce((sum, item) => sum + (item.quantity * item.price), 0))}
               </span>
             </div>
-            {quote.tax_percentage && quote.tax_percentage > 0 && (
-              <div className="flex justify-between mb-2">
-                <span className="text-gray-600">
-                  {quote.tax_label || 'Tax'} ({quote.tax_percentage}%)
-                </span>
-                <span className="font-semibold text-gray-900">
-                  {new Intl.NumberFormat('en-IE', {
-                    style: 'currency',
-                    currency: 'EUR',
-                    maximumFractionDigits: 0,
-                  }).format(items.reduce((sum, item) => sum + (item.quantity * item.price), 0) * (quote.tax_percentage / 100))}
-                </span>
-              </div>
-            )}
+            {taxes.map((tax) => {
+              const taxAmount = items.reduce((sum, item) => sum + (item.quantity * item.price), 0) * (tax.percentage / 100)
+              return (
+                <div key={tax.id} className="flex justify-between mb-2">
+                  <span className="text-gray-600">
+                    {tax.label} ({tax.percentage}%)
+                  </span>
+                  <span className="font-semibold text-gray-900">
+                    {new Intl.NumberFormat('en-IE', {
+                      style: 'currency',
+                      currency: 'EUR',
+                      maximumFractionDigits: 0,
+                    }).format(taxAmount)}
+                  </span>
+                </div>
+              )
+            })}
             <div className="flex justify-between mt-4 pt-4 border-t border-gray-300">
               <span className="text-lg font-bold text-gray-900">Total</span>
               <span className="text-lg font-bold text-gray-900">
